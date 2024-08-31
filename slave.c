@@ -11,30 +11,25 @@
 int main(int argc, char * argv[]) {
     
     //Variables del ciclo inicial
-    char * line = NULL;
-    size_t linecap = 0;
-    size_t linelen;
+    char line[MAX_CHARS];
+    size_t bytes_read;
 
 
     //Variables de los pipes con md5sum
-    char * argvChild[] = {MD5PATH, NULL};
+    char * argvChild[] = {MD5PATH, NULL, NULL};
     char * envpChild[] = {NULL};
     char md5_buff[MAX_CHARS];
-    size_t md5_cap;
-    int slaveToMD5[2];
     int MD5ToSlave[2];
+    pid_t slave_pid = getpid();
     
     //Código
-    pipe(slaveToMD5);
     pipe(MD5ToSlave);
 
     //Loop consistente en: leer de stdin mientras haya algo, procesarlo y enviarlo a stdout (proceso aplicación)
-    while((linelen = getline(line, &linecap, stdin)) > 0) { // TODO: reemplazar el getline por un read()
+    while((bytes_read = read(stdin, line, MAX_CHARS)) > 0) { 
         if (fork()==0) {
 
-            dup2(slaveToMD5[0], 0);
-            close(slaveToMD5[0]);
-            close(slaveToMD5[1]);
+            argvChild[1] = line;
 
             dup2(MD5ToSlave[1], 1);
             close(MD5ToSlave[1]);
@@ -43,13 +38,9 @@ int main(int argc, char * argv[]) {
             execve(MD5PATH, argvChild, envpChild);
         }
         else {
-            close(slaveToMD5[0]);
             close(MD5ToSlave[1]);
-            //write() //En slaveToMD5[1] escribir el path del archivo que nos pasan
-            //read(MD5ToSlave[0], md5_buff, md5_cap);
-            //Pedir pid - ver getpid()
-            //Extraer el nombre del archivo - ver stat()
-            //Empaquetarlo todo en un string y mandarlo por stdout
+            read(MD5ToSlave[0], md5_buff, MAX_CHARS);
+            printf("Slave PID\tFile name\tMD5\n%s\t%s\t%s", slave_pid, line, md5_buff);
         }
     }
 }

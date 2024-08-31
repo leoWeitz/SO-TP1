@@ -1,3 +1,2 @@
 #!/bin/sh
-read
-md5sum $REPLY
+md5sum $1
