@@ -5,10 +5,28 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <iostream>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 // Informacion de slave
 #define SLAVE_AMMOUNT 10
 #define SLAVEPATH "./slave.o"
+#define SHM_SIZE 1024
+#define IPC_ERROR -1
+
+static int getSharedBlock(char *filename, int size){
+    //Creo una key para la shared memory
+    key_t keySHM = ftok(filename,size);
+    if(keySHM==IPC_ERROR){
+        return IPC_ERROR;
+    }
+
+        //Creo la shared memory
+    idSHM = shmget(keySHM,1024, IPC_CREAT|0666);
+
+    return idSHM;
+}
 
 int main(int argc, char const *argv[])
 {
@@ -23,6 +41,18 @@ int main(int argc, char const *argv[])
     // Esto es para el select
     fd_set readfds;
     FD_ZERO(&readfds);
+
+    //Obtengo el puntero a la memoria
+    char *memoryPointer;
+    int sharedBlockId=getSharedBlock("/tmp", 'P'); //Ver si funciona el /tmp
+
+    memoryPointer=shmat(sharedBlockId,NULL,0);
+    if(memoryPointer==(char*)IPC_ERROR){
+        return IPC_ERROR;
+    }
+
+    //Hago el destroy y detach?
+
 
     // Loop para hacer pipes, hacer los fork/execve y cargar read y write fds
     for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
