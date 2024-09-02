@@ -1,14 +1,19 @@
-#include <view.h>
+#include "view.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 static int getSharedBlock(char *filename, int size){
     //Creo una key para la shared memory
     key_t keySHM = ftok(filename,size);
-    if(keySHM==IPC_ERROR){
+    if(keySHM==IPC_ERROR){ 
         return IPC_ERROR;
     }
 
     //Creo la shared memory
-    idSHM = shmget(keySHM,1024, IPC_CREAT|0666);
+    int idSHM = shmget(keySHM,1024, IPC_CREAT|0666);
 
     return idSHM;
 }
@@ -40,5 +45,5 @@ bool destroyMemoryBlock(char *filename){
         return NULL;
     }
 
-    return shtmctl(sharedBlockId,IPCRMID,NULL) != IPC_ERROR;
+    return shtmctl(sharedBlockId,IPC_RMID,NULL) != IPC_ERROR;
 }

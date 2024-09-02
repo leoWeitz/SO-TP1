@@ -5,9 +5,6 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <string.h>
-#include <iostream>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 
 // Informacion de slave
 #define SLAVE_AMMOUNT 10
