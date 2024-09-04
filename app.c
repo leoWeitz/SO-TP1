@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <string.h>
 
-#define INITIAL_PATH_AMMOUNT 4 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
+#define INITIAL_PATH_AMMOUNT 3 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
 // Informacion de slave
 #define SLAVE_AMMOUNT 10
 #define SLAVEPATH "./slave.o"
@@ -16,11 +16,13 @@ char *const envpSlave[] = {NULL};
 int currentPath = 1;
 int slavesCreated = 0;
 
-char *addPath(char buf[], char const *argv[], int argc);
+int addPath(char *buf, int bufSize, char const *argv[], int argc);
 
 void closePreviousPipes(int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2]);
 
-void prepareAndExecSlave(int appToSlaveFds[2], int slaveToAppFds[2]);
+void prepareAndExecSlave(int slaveNumber, int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2]);
+
+void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], int argc);
 
 int main(int argc, char const *argv[])
 {
@@ -43,7 +45,7 @@ int main(int argc, char const *argv[])
 
         if (fork() == 0)
         {
-            prepareAndExecSlave(appToSlaveFds[i], slaveToAppFds[i]);
+            prepareAndExecSlave(i, appToSlaveFds, slaveToAppFds);
         }
         close(appToSlaveFds[i][0]);
         close(slaveToAppFds[i][1]);
@@ -66,18 +68,7 @@ int main(int argc, char const *argv[])
     int i = 1;
     fd_set readfdsX;
 
-    // Manda un archivo a cada esclavo
-    for (size_t j = 0; j < SLAVE_AMMOUNT && i < argc; j++, i++)
-    {
-        char *buffer;
-        printf("Sending files\n");
-        for (size_t i = 0; i < INITIAL_PATH_AMMOUNT; i++)
-        {
-            buffer = addPath(buffer, argv, argc);
-        }
-
-        write(appToSlaveFds[j][1], argv[i], /*Medio feo esto, chequear*/ strlen(argv[i]) + 1);
-    }
+    sendInitialFiles(appToSlaveFds, argv, argc);
 
     int h = 0;
 
@@ -99,10 +90,10 @@ int main(int argc, char const *argv[])
             {
                 printf("Reading...\n");
                 // Test
-                char *buf;
-                buf = addPath(buf, argv, argc);
-                read(slaveToAppFds[j][0], buf, 100);
-                printf("%s\n", buf);
+                // char *buf;
+                // buf = addPath(buf, 0, argv, argc);
+                // read(slaveToAppFds[j][0], buf, 100);
+                // printf("%s\n", buf);
                 //
                 // send(appToSlaveFds[j][1], argv[i], /*Medio feo esto, chequear*/ strlen(argv[i]), 0);
                 h++;
@@ -113,16 +104,17 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-char *addPath(char buf[], char const *argv[], int argc)
+int addPath(char *buf, int bufSize, char const *argv[], int argc)
 {
     if (currentPath >= argc)
     {
-        return NULL;
+        return -1;
     }
-    char *newBuf = strcat(buf, '\n');
-    newBuf = strcat(newBuf, argv[currentPath]);
-    newBuf = strcat(newBuf, '\0');
-    return newBuf;
+    int newBufSize = bufSize + strlen(argv[currentPath]) + 2;
+    buf = realloc(buf, newBufSize);
+    buf = strcat(buf, argv[currentPath]);
+    buf = strcat(buf, "\n\0");
+    return newBufSize;
 }
 
 void closePreviousPipes(int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2])
@@ -136,15 +128,30 @@ void closePreviousPipes(int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[S
     }
 }
 
-void prepareAndExecSlave(int appToSlaveFds[2], int slaveToAppFds[2])
+void prepareAndExecSlave(int slaveNumber, int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2])
 {
-    close(appToSlaveFds[1]);
-    close(slaveToAppFds[0]);
-    dup2(appToSlaveFds[0], 0);
-    dup2(slaveToAppFds[1], 1);
-    close(appToSlaveFds[0]);
-    close(slaveToAppFds[1]);
+    close(appToSlaveFds[slaveNumber][1]);
+    close(slaveToAppFds[slaveNumber][0]);
+    dup2(appToSlaveFds[slaveNumber][0], 0);
+    dup2(slaveToAppFds[slaveNumber][1], 1);
+    close(appToSlaveFds[slaveNumber][0]);
+    close(slaveToAppFds[slaveNumber][1]);
     closePreviousPipes(appToSlaveFds, slaveToAppFds);
     slavesCreated++;
     execve(SLAVEPATH, argvSlave, envpSlave);
+}
+
+void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], int argc)
+{
+    for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++, currentPath++)
+    {
+        int bufferSize = 0;
+        char *buffer = malloc(bufferSize);
+        printf("Sending files\n");
+        for (size_t i = 0; i < INITIAL_PATH_AMMOUNT; i++)
+        {
+            bufferSize = addPath(buffer, bufferSize, argv, argc);
+        }
+        write(appToSlaveFds[j][1], buffer, bufferSize);
+    }
 }
