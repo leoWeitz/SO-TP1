@@ -6,10 +6,10 @@
 #include <sys/socket.h>
 #include <string.h>
 
-#define INITIAL_PATH_AMMOUNT 3 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
+#define INITIAL_PATH_AMMOUNT 1 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
 // Informacion de slave
 #define SLAVE_AMMOUNT 10
-#define SLAVEPATH "./slave.o"
+#define SLAVEPATH "./slave.out"
 char *const argvSlave[] = {SLAVEPATH, NULL};
 char *const envpSlave[] = {NULL};
 
@@ -23,6 +23,8 @@ void closePreviousPipes(int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[S
 void prepareAndExecSlave(int slaveNumber, int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2]);
 
 void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], int argc);
+
+void readFromFd(int fdToRead);
 
 int main(int argc, char const *argv[])
 {
@@ -49,6 +51,7 @@ int main(int argc, char const *argv[])
         }
         close(appToSlaveFds[i][0]);
         close(slaveToAppFds[i][1]);
+        sleep(10);
 
         // carga readfds con todos los fds que necesitamos monitorear
         FD_SET(slaveToAppFds[i][0], &readfds);
@@ -88,14 +91,11 @@ int main(int argc, char const *argv[])
         {
             if (FD_ISSET(slaveToAppFds[j][0], &readfdsX))
             {
-                printf("Reading...\n");
-                // Test
-                // char *buf;
-                // buf = addPath(buf, 0, argv, argc);
-                // read(slaveToAppFds[j][0], buf, 100);
-                // printf("%s\n", buf);
-                //
-                // send(appToSlaveFds[j][1], argv[i], /*Medio feo esto, chequear*/ strlen(argv[i]), 0);
+                readFromFd(slaveToAppFds[j][0]);
+                char *buf = malloc(0);
+                int bufSize = addPath(buf, 0, argv, argc);
+                write(appToSlaveFds[j][1], buf, /*Medio feo esto, chequear*/ bufSize);
+                free(buf);
                 h++;
             }
         }
@@ -110,10 +110,11 @@ int addPath(char *buf, int bufSize, char const *argv[], int argc)
     {
         return -1;
     }
-    int newBufSize = bufSize + strlen(argv[currentPath]) + 2;
-    buf = realloc(buf, newBufSize);
-    buf = strcat(buf, argv[currentPath]);
-    buf = strcat(buf, "\n\0");
+    int newBufSize = bufSize + strlen(argv[currentPath] + 1);
+    buf = realloc(buf, newBufSize + 1);
+    strcat(buf, argv[currentPath]);
+    strcat(buf, "\n");
+    buf[newBufSize] = '\0';
     return newBufSize;
 }
 
@@ -153,5 +154,13 @@ void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], i
             bufferSize = addPath(buffer, bufferSize, argv, argc);
         }
         write(appToSlaveFds[j][1], buffer, bufferSize);
+        free(buffer);
     }
+}
+
+void readFromFd(int fdToRead)
+{
+    char rBuf[100];
+    read(fdToRead, rBuf, 100);
+    printf("%s\n", rBuf);
 }
