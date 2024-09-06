@@ -28,8 +28,9 @@ int main()
     int MD5ToSlave[2];
     pid_t child;
 
-    while ((bytes_read = scanf("%s", line)) > 0)
+    while (read(0, line, MAX_CHARS) > 0)
     {
+        nullTerminate(line);
 
         pipe(MD5ToSlave);
 
@@ -47,12 +48,12 @@ int main()
             waitpid(child, &wstatus, 0);
 
             read(MD5ToSlave[0], md5_buff, MAX_CHARS);
-            nullTerminate(md5_buff);
+            // nullTerminate(md5_buff);
             close(MD5ToSlave[0]);
 
             pid_t my_pid = getpid();
             printf("%d\t", my_pid);
-            if (md5_buff == '\0')
+            if (*md5_buff == '\0')
             {
                 printf("Error\t");
             }

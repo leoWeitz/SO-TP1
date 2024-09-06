@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
     fd_set readfds;
     FD_ZERO(&readfds);
 
-    // Loop para hacer pipes, hacer los fork/execve y cargar read y write fds
+    // Loop para haceer pipes, hacer los fork/execve y cargar read y write fds
     for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
     {
         printf("Piping number %ld\n", i);
@@ -51,7 +51,6 @@ int main(int argc, char const *argv[])
         }
         close(appToSlaveFds[i][0]);
         close(slaveToAppFds[i][1]);
-        sleep(10);
 
         // carga readfds con todos los fds que necesitamos monitorear
         FD_SET(slaveToAppFds[i][0], &readfds);
@@ -81,6 +80,7 @@ int main(int argc, char const *argv[])
         printf("Selecting readable pipes\n");
 
         // cargar readfds y writefds con todos los fds monitoreados
+        FD_ZERO(&readfds);
         readfdsX = readfds;
         select(FD_SETSIZE, &readfdsX, NULL, NULL, NULL);
         // en readfds quedan solo los fds habilitados para lectura
@@ -110,11 +110,12 @@ int addPath(char *buf, int bufSize, char const *argv[], int argc)
     {
         return -1;
     }
-    int newBufSize = bufSize + strlen(argv[currentPath] + 1);
+    int newBufSize = bufSize + strlen(argv[currentPath]) + 1;
     buf = realloc(buf, newBufSize + 1);
     strcat(buf, argv[currentPath]);
     strcat(buf, "\n");
     buf[newBufSize] = '\0';
+    printf("current parameter %s\n", buf);
     return newBufSize;
 }
 
@@ -153,7 +154,8 @@ void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], i
         {
             bufferSize = addPath(buffer, bufferSize, argv, argc);
         }
-        write(appToSlaveFds[j][1], buffer, bufferSize);
+        printf("Buffer: %s\n", buffer);
+        write(appToSlaveFds[j][1], buffer, strlen(buffer) /*bufferSize*/);
         free(buffer);
     }
 }
