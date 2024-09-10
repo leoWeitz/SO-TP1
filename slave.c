@@ -25,7 +25,7 @@ int main()
     int wstatus;
     char *argvChild[] = {MD5PATH, line, NULL};
     char *envpChild[] = {NULL};
-    char md5_buff[MAX_CHARS] = "\0";
+    char md5_buff[MAX_CHARS] = {0};
     int MD5ToSlave[2];
     pid_t child;
 

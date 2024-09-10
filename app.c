@@ -16,7 +16,7 @@ char *const envpSlave[] = {NULL};
 int currentPath = 1;
 int slavesCreated = 0;
 
-int addPath(char *buf, int bufSize, char const *argv[], int argc);
+int addPath(char **buf, int bufSize, char const *argv[], int argc);
 
 void closePreviousPipes(int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2]);
 
@@ -56,17 +56,6 @@ int main(int argc, char const *argv[])
         FD_SET(slaveToAppFds[i][0], &readfds);
     }
 
-    // Testing
-    for (size_t j = 0; j < SLAVE_AMMOUNT; j++)
-    {
-
-        if (FD_ISSET(slaveToAppFds[j][0], &readfds))
-        {
-            printf("%d\n", slaveToAppFds[j][0]);
-        }
-    }
-    //
-
     int i = 1;
     fd_set readfdsX;
 
@@ -77,10 +66,20 @@ int main(int argc, char const *argv[])
     // Loop para mandar archivos a los esclavos y leer hashes. Usa select para ir viendo que fds estan listos
     while (h < 2)
     {
+        // Testing
+        // for (size_t j = 0; j < SLAVE_AMMOUNT; j++)
+        // {
+
+        //     if (FD_ISSET(slaveToAppFds[j][0], &readfds))
+        //     {
+        //         printf("%d\n", slaveToAppFds[j][0]);
+        //     }
+        // }
+        //
         printf("Selecting readable pipes\n");
 
         // cargar readfds y writefds con todos los fds monitoreados
-        FD_ZERO(&readfds);
+        FD_ZERO(&readfdsX);
         readfdsX = readfds;
         select(FD_SETSIZE, &readfdsX, NULL, NULL, NULL);
         // en readfds quedan solo los fds habilitados para lectura
@@ -89,11 +88,11 @@ int main(int argc, char const *argv[])
         // read from readable fds (LEER HASHES) y send despues de leer (MANDAR ARCHIVOS)
         for (size_t j = 0; j < SLAVE_AMMOUNT && i < argc; j++)
         {
+            char *buf = NULL;
             if (FD_ISSET(slaveToAppFds[j][0], &readfdsX))
             {
                 readFromFd(slaveToAppFds[j][0]);
-                char *buf = malloc(0);
-                int bufSize = addPath(buf, 0, argv, argc);
+                int bufSize = addPath(&buf, 0, argv, argc);
                 write(appToSlaveFds[j][1], buf, /*Medio feo esto, chequear*/ bufSize);
                 free(buf);
                 h++;
@@ -104,17 +103,17 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-int addPath(char *buf, int bufSize, char const *argv[], int argc)
+int addPath(char **buf, int bufSize, char const *argv[], int argc)
 {
     if (currentPath >= argc)
     {
         return -1;
     }
-    int newBufSize = bufSize + strlen(argv[currentPath]) + 1;
-    buf = realloc(buf, newBufSize);
-    strcat(buf, argv[currentPath]);
-    strcat(buf, "\n");
-    printf("current parameter %s\n", buf);
+    int newBufSize = bufSize + strlen(argv[currentPath]) + 2;
+    *buf = realloc(*buf, newBufSize);
+    strcpy(*buf + bufSize, argv[currentPath]);
+    strcat(*buf, "\n");
+    printf("current parameter %s\n", *buf);
     currentPath++;
     return newBufSize;
 }
@@ -147,14 +146,13 @@ void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], i
 {
     for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++)
     {
-        int bufferSize = 1;
-        char *buffer = malloc(bufferSize);
-        buffer[0] = '\0';
+        char *buffer = NULL;
+        int bufferSize = 0;
         printf("Hay esto: %s\n", buffer);
         printf("Sending files\n");
         for (size_t i = 0; i < INITIAL_PATH_AMMOUNT && currentPath < argc; i++)
         {
-            bufferSize = addPath(buffer, bufferSize, argv, argc);
+            bufferSize = addPath(&buffer, bufferSize, argv, argc);
         }
         printf("Buffer: %s\n", buffer);
         write(appToSlaveFds[j][1], buffer, strlen(buffer) /*bufferSize*/);
@@ -164,7 +162,7 @@ void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], i
 
 void readFromFd(int fdToRead)
 {
-    char rBuf[100];
+    char rBuf[1000] = {0};
     read(fdToRead, rBuf, 100);
     printf("%s\n", rBuf);
 }
