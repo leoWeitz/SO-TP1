@@ -111,11 +111,11 @@ int addPath(char *buf, int bufSize, char const *argv[], int argc)
         return -1;
     }
     int newBufSize = bufSize + strlen(argv[currentPath]) + 1;
-    buf = realloc(buf, newBufSize + 1);
+    buf = realloc(buf, newBufSize);
     strcat(buf, argv[currentPath]);
     strcat(buf, "\n");
-    buf[newBufSize] = '\0';
     printf("current parameter %s\n", buf);
+    currentPath++;
     return newBufSize;
 }
 
@@ -145,12 +145,14 @@ void prepareAndExecSlave(int slaveNumber, int appToSlaveFds[SLAVE_AMMOUNT][2], i
 
 void sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], int argc)
 {
-    for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++, currentPath++)
+    for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++)
     {
-        int bufferSize = 0;
+        int bufferSize = 1;
         char *buffer = malloc(bufferSize);
+        buffer[0] = '\0';
+        printf("Hay esto: %s\n", buffer);
         printf("Sending files\n");
-        for (size_t i = 0; i < INITIAL_PATH_AMMOUNT; i++)
+        for (size_t i = 0; i < INITIAL_PATH_AMMOUNT && currentPath < argc; i++)
         {
             bufferSize = addPath(buffer, bufferSize, argv, argc);
         }

@@ -49,10 +49,11 @@ int main(int argc, char const *argv[])
         FD_SET(slaveToApp[0], &readfds);
 
         // Quiero que escriba en el pipe 2 veces el mismo path (argv[1])
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < argc; i++)
         {
             // Write the path to the pipe
-            write(appToSlave[1], argv[1], strlen(argv[1]) + 1);
+            write(appToSlave[1], argv[i], strlen(argv[i]) + 1);
+            write(appToSlave[1], "\n", 1);
 
             select(FD_SETSIZE, &readfds, NULL, NULL, NULL);
 
@@ -70,6 +71,5 @@ int main(int argc, char const *argv[])
         }
 
         close(appToSlave[1]);
-        waitpid(pid, NULL, 0);
     }
 }

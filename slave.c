@@ -17,6 +17,7 @@ void nullTerminate(char *buff);
 
 int main()
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     char line[MAX_CHARS];
     size_t bytes_read;
