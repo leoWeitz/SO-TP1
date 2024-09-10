@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <string.h>
 
-#define INITIAL_PATH_AMMOUNT 1 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
+#define INITIAL_PATH_AMMOUNT 2 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
 // Informacion de slave
 #define SLAVE_AMMOUNT 10
 #define SLAVEPATH "./slave.out"
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[])
     int h = 0;
 
     // Loop para mandar archivos a los esclavos y leer hashes. Usa select para ir viendo que fds estan listos
-    while (h < 2)
+    while (h < 50)
     {
         // Testing
         // for (size_t j = 0; j < SLAVE_AMMOUNT; j++)
@@ -109,7 +109,7 @@ int addPath(char **buf, int bufSize, char const *argv[], int argc)
     {
         return -1;
     }
-    int newBufSize = bufSize + strlen(argv[currentPath]) + 2;
+    int newBufSize = bufSize + strlen(argv[currentPath]) + 1;
     *buf = realloc(*buf, newBufSize);
     strcpy(*buf + bufSize, argv[currentPath]);
     strcat(*buf, "\n");
