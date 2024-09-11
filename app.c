@@ -76,6 +76,7 @@ int main(int argc, char const *argv[])
         //     }
         // }
         //
+        printf("%d\n", h);
         printf("Selecting readable pipes\n");
 
         // cargar readfds y writefds con todos los fds monitoreados
