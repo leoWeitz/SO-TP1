@@ -1,3 +1,5 @@
+/*Testea si createName() de SharedMemoryADT.c tiene leaks*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
