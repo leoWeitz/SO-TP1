@@ -16,30 +16,40 @@ int addPath(char **buf, int bufSize, char const *argv[], int argc, int currentPa
     return newBufSize;
 }
 
-void closePreviousPipes(int slavesCreated, int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2])
+void closePreviousPipes(int slavesCreated, slaveInfo *slaveArray[SLAVE_AMMOUNT])
 {
     for (size_t i = 0; i < slavesCreated; i++)
     {
-        close(appToSlaveFds[i][0]);
-        close(appToSlaveFds[i][1]);
-        close(slaveToAppFds[i][0]);
-        close(slaveToAppFds[i][1]);
+        close(slaveArray[slavesCreated]->writeToSlaveFd);
+        close(slaveArray[slavesCreated]->readFromSlaveFd);
     }
 }
 
-void prepareAndExecSlave(int slaveNumber, int appToSlaveFds[SLAVE_AMMOUNT][2], int slaveToAppFds[SLAVE_AMMOUNT][2])
+void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
 {
-    close(appToSlaveFds[slaveNumber][1]);
-    close(slaveToAppFds[slaveNumber][0]);
-    dup2(appToSlaveFds[slaveNumber][0], 0);
-    dup2(slaveToAppFds[slaveNumber][1], 1);
-    close(appToSlaveFds[slaveNumber][0]);
-    close(slaveToAppFds[slaveNumber][1]);
-    closePreviousPipes(slaveNumber, appToSlaveFds, slaveToAppFds);
-    execve(SLAVEPATH, argvSlave, envpSlave);
+    int appToSlaveFdsAux[2];
+    int slaveToAppFdsAux[2];
+    pipe(appToSlaveFdsAux);
+    pipe(slaveToAppFdsAux);
+    slaveArray[slaveNumber]->readFromSlaveFd = slaveToAppFdsAux[0];
+    slaveArray[slaveNumber]->writeToSlaveFd = appToSlaveFdsAux[1];
+
+    if (fork() == 0)
+    {
+        close(slaveArray[slaveNumber]->writeToSlaveFd);
+        close(slaveArray[slaveNumber]->readFromSlaveFd);
+        dup2(appToSlaveFdsAux[0], 0);
+        dup2(slaveToAppFdsAux[1], 1);
+        close(appToSlaveFdsAux[0]);
+        close(slaveToAppFdsAux[1]);
+        closePreviousPipes(slaveNumber, slaveArray);
+        execve(SLAVEPATH, argvSlave, envpSlave);
+    }
+    close(appToSlaveFdsAux[0]);
+    close(slaveToAppFdsAux[1]);
 }
 
-int sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], int argc, int currentPath)
+int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath)
 {
     for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++)
     {
@@ -50,7 +60,7 @@ int sendInitialFiles(int appToSlaveFds[SLAVE_AMMOUNT][2], char const *argv[], in
             bufferSize = addPath(&buffer, bufferSize, argv, argc, currentPath);
             currentPath++;
         }
-        write(appToSlaveFds[j][1], buffer, strlen(buffer) /*bufferSize*/);
+        write(slaveArray[j]->writeToSlaveFd, buffer, bufferSize);
         free(buffer);
     }
     return currentPath;

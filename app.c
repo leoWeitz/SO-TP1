@@ -7,7 +7,7 @@ int main(int argc, char const *argv[])
 {
 
     // Matrices para guardar los fds de cada esclavo
-    int appToSlaveFds[SLAVE_AMMOUNT][2], slaveToAppFds[SLAVE_AMMOUNT][2];
+    slaveInfo *slaveArray[SLAVE_AMMOUNT];
 
     // Esto es para el select
     fd_set readfds;
@@ -16,24 +16,17 @@ int main(int argc, char const *argv[])
     // Loop para haceer pipes, hacer los fork/execve y cargar read y write fds
     for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
     {
-        pipe(appToSlaveFds[i]);
-        pipe(slaveToAppFds[i]);
-
-        if (fork() == 0)
-        {
-            prepareAndExecSlave(i, appToSlaveFds, slaveToAppFds);
-        }
-        close(appToSlaveFds[i][0]);
-        close(slaveToAppFds[i][1]);
+        slaveArray[i] = malloc(sizeof(slaveInfo));
+        prepareAndExecSlave(i, slaveArray);
 
         // carga readfds con todos los fds que necesitamos monitorear
-        FD_SET(slaveToAppFds[i][0], &readfds);
+        FD_SET(slaveArray[i]->readFromSlaveFd, &readfds);
     }
 
     int i = 1;
     fd_set readfdsX;
 
-    currentPath = sendInitialFiles(appToSlaveFds, argv, argc, currentPath);
+    currentPath = sendInitialFiles(slaveArray, argv, argc, currentPath);
 
     int processed = 0;
 
@@ -50,19 +43,20 @@ int main(int argc, char const *argv[])
         for (size_t j = 0; j < SLAVE_AMMOUNT && i < argc; j++)
         {
             char *buf = NULL;
-            if (FD_ISSET(slaveToAppFds[j][0], &readfdsX))
+            if (FD_ISSET(slaveArray[j]->readFromSlaveFd, &readfdsX))
             {
-                readFromFdAndWriteResult(slaveToAppFds[j][0]);
+                readFromFdAndWriteResult(slaveArray[j]->readFromSlaveFd);
                 if (currentPath < argc)
                 {
                     int bufSize = addPath(&buf, 0, argv, argc, currentPath);
                     currentPath++;
-                    write(appToSlaveFds[j][1], buf, bufSize);
+                    write(slaveArray[j]->writeToSlaveFd, buf, bufSize);
                     free(buf);
                 }
                 processed++;
             }
         }
+        printf("%d\n", processed);
     }
 
     return 0;
