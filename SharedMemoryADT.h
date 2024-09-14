@@ -34,6 +34,8 @@ void closeSharedMemory(SharedMemoryADT sharedMemory);
     Escribe buffer en la memoria compartida mientras haya espacio.
     NOTAR: bufferSize debe ser el tamaño del string sin contar el '\0' del final (strlen(buffer))
 
+    Los strings tienen que ser Null terminated
+
     @Returns: la cantidad de bytes escritos
 */
 size_t writeSharedMemory(SharedMemoryADT sharedMemory, const void *buffer, size_t bufferSize);

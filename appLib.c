@@ -10,7 +10,6 @@ int addPath(char **buf, int bufSize, char const *path, int argc)
     *buf = realloc(*buf, newBufSize);
     strcpy(*buf + bufSize, path);
     strcat(*buf, "\n");
-    printf("Path: %s\n", *buf);
     return newBufSize;
 }
 
@@ -66,11 +65,10 @@ int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], i
     return currentPath;
 }
 
-void readFromFdAndWriteResult(int fdToRead, FILE *file)
+void readFromFdAndWriteResult(int fdToRead, FILE *file,SharedMemoryADT sharedMemory)
 {
-    char rBuf[100] = {0};
+    char rBuf[TAMANO1DATO] = {0};
     read(fdToRead, rBuf, 100);
-    printf("%s\n", rBuf);
     fprintf(file, "%s", rBuf);
-    //  ESCRIBIR EN SHARED MEMORY EN VEZ DE PRINTEAR
+    writeSharedMemory(sharedMemory, rBuf, strlen(rBuf));
 }

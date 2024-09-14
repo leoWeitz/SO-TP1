@@ -144,23 +144,13 @@ size_t writeSharedMemory(SharedMemoryADT sharedMemory, const void *buffer, size_
 {
     sem_wait(sharedMemory->mutexSemaphore);
 
-    checkSpace(sharedMemory, &size);
     strncpy(sharedMemory->writePointer, buffer, size);
-    sharedMemory->writePointer += size;
+    sharedMemory->writePointer += (size + 1);
 
-    sem_post(sharedMemory->mutexSemaphore);
     sem_post(sharedMemory->fullBufferSemaphore);
+    sem_post(sharedMemory->mutexSemaphore);
 
     return size;
-}
-
-void checkSpace(SharedMemoryADT sharedMemory, size_t *toWrite)
-{
-    if (sharedMemory->currSize + *toWrite > sharedMemory->bufferSize)
-    {
-        *toWrite = sharedMemory->bufferSize - sharedMemory->currSize;
-    }
-    sharedMemory->currSize += *toWrite;
 }
 
 size_t readSharedMemory(SharedMemoryADT sharedMemory, void *buffer, size_t size)
@@ -169,10 +159,9 @@ size_t readSharedMemory(SharedMemoryADT sharedMemory, void *buffer, size_t size)
     sem_wait(sharedMemory->mutexSemaphore);
 
     strcpy(buffer, sharedMemory->readPointer);
-    sharedMemory->readPointer += size;
+    sharedMemory->readPointer += (strlen(buffer) + 1);
 
     sem_post(sharedMemory->mutexSemaphore);
-
     return strlen(buffer);
 }
 
