@@ -5,9 +5,9 @@
 #include <sys/socket.h>
 #include <string.h>
 
-#define INITIAL_PATH_AMMOUNT 1 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
-// Informacion de slave
-#define SLAVE_AMMOUNT 10
+// #define MAX_PATH_AMMOUNT 3 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
+//  Informacion de slave
+#define SLAVE_AMMOUNT 10 //@TODO: Chequear magic number
 #define SLAVEPATH "./slave.out"
 
 typedef struct slaveInfo
@@ -17,10 +17,10 @@ typedef struct slaveInfo
     int slavePid;
 } slaveInfo;
 
-int addPath(char **buf, int bufSize, char const *argv[], int argc, int currentPath);
+int addPath(char **buf, int bufSize, char const *path, int argc);
 
 void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT]);
 
-int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath);
+int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty);
 
-void readFromFdAndWriteResult(int fdToRead);
+void readFromFdAndWriteResult(int fdToRead, FILE *file);

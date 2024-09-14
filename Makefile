@@ -17,4 +17,5 @@ app.out: app.o appLib.o
 	$(CC) app.o appLib.o -o app.out
 
 clean:
-	rm -f *.o *.out
+	rm -f *.o *.out results.txt files/*
+	rmdir files

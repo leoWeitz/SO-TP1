@@ -11,7 +11,8 @@
 #include <stdlib.h>
 
 #define MD5PATH "/usr/bin/md5sum"
-#define MAX_CHARS 1000
+#define MAX_CHARS 2000
+#define MAX_SPRINTF 3000
 
 void nullTerminate(char *buff);
 
@@ -19,21 +20,28 @@ int main()
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    char line[MAX_CHARS];
-    size_t bytes_read;
+    char *line = malloc(MAX_CHARS);
 
-    int wstatus;
+    // char *path;
     char *argvChild[] = {MD5PATH, line, NULL};
     char *envpChild[] = {NULL};
     char md5_buff[MAX_CHARS] = {0};
     int MD5ToSlave[2];
     pid_t child;
 
-    while (read(0, line, MAX_CHARS) > 0)
+    // read(0, line, MAX_CHARS)
+
+    while (fgets(line, MAX_CHARS, stdin) > 0)
     {
         nullTerminate(line);
 
+        // char *aux = line;
+
+        // while (((path = strtok(aux, "\t")) != NULL) && (path[0] != '\n'))
+        //{
+        // aux = NULL;
         pipe(MD5ToSlave);
+        // argvChild[1] = path;
 
         if ((child = fork()) == 0)
         {
@@ -46,24 +54,39 @@ int main()
         else
         {
             close(MD5ToSlave[1]);
-            waitpid(child, &wstatus, 0);
 
-            read(MD5ToSlave[0], md5_buff, MAX_CHARS);
+            // Limpiar los posibles saltos de línea adicionales
+            nullTerminate(md5_buff);
+
+            if (read(MD5ToSlave[0], md5_buff, MAX_CHARS) == -1)
+            {
+                perror("Slave read\t");
+            }
+            else
+            {
+                pid_t my_pid = getpid();
+                char toSend[MAX_SPRINTF]; //@TODO: Change MAX_SPRINTF
+                sprintf(toSend, "%d\t%s", my_pid, md5_buff);
+                printf("%s", toSend);
+            }
             // nullTerminate(md5_buff);
             close(MD5ToSlave[0]);
 
-            pid_t my_pid = getpid();
-            printf("%d\t", my_pid);
-            if (*md5_buff == '\0')
+            /*if (*md5_buff == '\0')
             {
-                printf("Error\t");
+                perror("Slave read\t");
             }
             else
             {
                 printf("%s\n", md5_buff);
             }
+            */
         }
+
+        //}
     }
+
+    sleep(100000);
     return 0;
 }
 

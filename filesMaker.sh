@@ -9,8 +9,8 @@ do
     # Generate the file name
     filename="file$i.txt"
 
-    # Create the file in the "files" folder
-    touch files/$filename
+    # Generate random content and sleep for 1 second
+    echo "Podonga $i" > "files/$filename" 
 
     # Print the created file name
     echo "Created file: $filename"

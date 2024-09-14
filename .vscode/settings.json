@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "select.h": "c"
+        "select.h": "c",
+        "stdlib.h": "c",
+        "applib.h": "c",
+        "string.h": "c"
     }
 }
