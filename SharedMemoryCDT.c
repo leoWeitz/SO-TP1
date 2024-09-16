@@ -1,4 +1,4 @@
-//SharedMemoryCDT.c
+// SharedMemoryCDT.c
 #include "SharedMemoryADT.h"
 
 struct SharedMemoryCDT
@@ -44,11 +44,7 @@ SharedMemoryADT createSharedMemory(const char *id, size_t bufferSize)
 
 void destroySharedMemory(SharedMemoryADT sharedMemory)
 {
-
-    if (munmap(sharedMemory->sharedMemoryBaseAddress, sharedMemory->bufferSize + sizeof(long)) < 0)
-    {
-        handleError("Error unmapping shared memory");
-    }
+    closeSharedMemory(sharedMemory);
 
     if (shm_unlink(sharedMemory->sharedMemoryPath) < 0)
     {
@@ -88,8 +84,8 @@ static SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize)
     }
     sharedBuffer->bufferSize = buffSize;
     sharedBuffer->currSize = 0;
-    
-    createName(&sharedBuffer->sharedMemoryPath, "/shm_", id); 
+
+    createName(&sharedBuffer->sharedMemoryPath, "/shm_", id);
     createName(&sharedBuffer->mutexSemaphorePath, "/sem-mutex_", id);
     createName(&sharedBuffer->fullBufferSemaphorePath, "/sem-full_", id);
 
@@ -120,7 +116,7 @@ static void createResources(SharedMemoryADT sharedBuffer)
         handleError("Error creating mutex semaphore");
     }
 
-     if ((sharedBuffer->fullBufferSemaphore = sem_open(sharedBuffer->fullBufferSemaphorePath, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 0)) == SEM_FAILED)
+    if ((sharedBuffer->fullBufferSemaphore = sem_open(sharedBuffer->fullBufferSemaphorePath, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 0)) == SEM_FAILED)
     {
         handleError("Error creating fullBuffer semaphore");
     }
@@ -179,7 +175,7 @@ SharedMemoryADT openSharedMemory(const char *id, size_t bufferSize)
         handleError("Error opening buffer semaphore");
     }
 
-    if ((sharedBuffer->sharedMemoryBaseAddress = mmap(NULL, sharedBuffer->bufferSize + sizeof(long), PROT_READ | PROT_WRITE, MAP_SHARED, sharedBuffer->sharedMemoryFd, 0)) == MAP_FAILED)
+    if ((sharedBuffer->sharedMemoryBaseAddress = mmap(NULL, sharedBuffer->bufferSize, PROT_READ | PROT_WRITE, MAP_SHARED, sharedBuffer->sharedMemoryFd, 0)) == MAP_FAILED)
     {
         handleError("Error mapping shared memory");
     }
@@ -192,7 +188,7 @@ SharedMemoryADT openSharedMemory(const char *id, size_t bufferSize)
 
 void closeSharedMemory(SharedMemoryADT sharedMemory)
 {
-    if (munmap(sharedMemory->sharedMemoryBaseAddress, sharedMemory->bufferSize + sizeof(long)) < 0)
+    if (munmap(sharedMemory->sharedMemoryBaseAddress, sharedMemory->bufferSize) < 0)
     {
         handleError("Error unmapping shared memory");
     }
@@ -206,6 +202,4 @@ void closeSharedMemory(SharedMemoryADT sharedMemory)
     {
         handleError("Error closing full buffer semaphore");
     }
-
 }
-

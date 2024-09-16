@@ -3,7 +3,6 @@
 char *const argvSlave[] = {SLAVEPATH, NULL};
 char *const envpSlave[] = {NULL};
 
-
 struct slaveInfoCDT
 {
     int writeToSlaveFd;
@@ -11,13 +10,13 @@ struct slaveInfoCDT
     int slavePid;
 };
 
-int addPath(char **buf, int bufSize, char const *path, int argc)
+int addPath(char **buf, int bufSize, char const *path)
 {
-    int newBufSize = bufSize + strlen(path) + 1;
+    int newBufSize = bufSize + strlen(path) + 2;
     *buf = realloc(*buf, newBufSize);
     strcpy(*buf + bufSize, path);
     strcat(*buf, "\n");
-    return newBufSize;
+    return newBufSize - 1;
 }
 
 static void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_AMMOUNT])
@@ -29,33 +28,37 @@ static void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_
     }
 }
 
-void prepareAndExecSlave(int slaveNumber, slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds)
+void prepareAndExecSlaves(slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds)
 {
-    int appToSlaveFdsAux[2];
-    int slaveToAppFdsAux[2];
-    pipe(appToSlaveFdsAux);
-    pipe(slaveToAppFdsAux);
-    slaveArray[slaveNumber]->readFromSlaveFd = slaveToAppFdsAux[0];
-    slaveArray[slaveNumber]->writeToSlaveFd = appToSlaveFdsAux[1];
-    int slavePid = fork();
-    if ((slavePid) == 0)
+    for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
     {
-        closePreviousPipes(slaveNumber, slaveArray);
-        close(slaveArray[slaveNumber]->writeToSlaveFd);
-        close(slaveArray[slaveNumber]->readFromSlaveFd);
-        dup2(appToSlaveFdsAux[0], 0);
-        dup2(slaveToAppFdsAux[1], 1);
+        slaveArray[i] = malloc(sizeof(struct slaveInfoCDT));
+        int appToSlaveFdsAux[2];
+        int slaveToAppFdsAux[2];
+        pipe(appToSlaveFdsAux);
+        pipe(slaveToAppFdsAux);
+        slaveArray[i]->readFromSlaveFd = slaveToAppFdsAux[0];
+        slaveArray[i]->writeToSlaveFd = appToSlaveFdsAux[1];
+        int slavePid = fork();
+        if ((slavePid) == 0)
+        {
+            closePreviousPipes(i, slaveArray);
+            close(slaveArray[i]->writeToSlaveFd);
+            close(slaveArray[i]->readFromSlaveFd);
+            dup2(appToSlaveFdsAux[0], 0);
+            dup2(slaveToAppFdsAux[1], 1);
+            close(appToSlaveFdsAux[0]);
+            close(slaveToAppFdsAux[1]);
+            execve(SLAVEPATH, argvSlave, envpSlave);
+        }
+        else
+        {
+            slaveArray[i]->slavePid = slavePid;
+        }
         close(appToSlaveFdsAux[0]);
         close(slaveToAppFdsAux[1]);
-        execve(SLAVEPATH, argvSlave, envpSlave);
+        FD_SET(slaveArray[i]->readFromSlaveFd, readfds);
     }
-    else
-    {
-        slaveArray[slaveNumber]->slavePid = slavePid;
-    }
-    close(appToSlaveFdsAux[0]);
-    close(slaveToAppFdsAux[1]);
-    FD_SET(slaveArray[slaveNumber]->readFromSlaveFd, readfds);
 }
 
 int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty)
@@ -66,7 +69,7 @@ int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[],
         int bufferSize = 0;
         for (size_t i = 0; i < initialPathQty && currentPath < argc; i++)
         {
-            bufferSize = addPath(&buffer, bufferSize, argv[currentPath], argc);
+            bufferSize = addPath(&buffer, bufferSize, argv[currentPath]);
             currentPath++;
         }
         write(slaveArray[j]->writeToSlaveFd, buffer, bufferSize);
@@ -106,7 +109,7 @@ void readFromSlavesAndWriteResults(slaveInfoADT slaveArray[SLAVE_AMMOUNT], int c
                 manageResult(slaveArray[j], file, sharedMemory);
                 if (currentPath < argc)
                 {
-                    int bufSize = addPath(&buf, 0, argv[currentPath], argc);
+                    int bufSize = addPath(&buf, 0, argv[currentPath]);
                     currentPath++;
                     write(slaveArray[j]->writeToSlaveFd, buf, bufSize);
                     free(buf);

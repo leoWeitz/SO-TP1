@@ -15,9 +15,9 @@
 
 typedef struct slaveInfoCDT *slaveInfoADT;
 
-int addPath(char **buf, int bufSize, char const *path, int argc);
+int addPath(char **buf, int bufSize, char const *path);
 
-void prepareAndExecSlave(int slaveNumber, slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds);
+void prepareAndExecSlaves(slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds);
 
 int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty);
 
