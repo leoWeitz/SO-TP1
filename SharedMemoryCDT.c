@@ -9,13 +9,13 @@ struct SharedMemoryCDT
     char *writePointer;
     char *readPointer;
     sem_t *mutexSemaphore;
-    sem_t *fullBufferSemaphore;
+    sem_t *toReadSemaphore;
     size_t currSize;
     size_t bufferSize;
     int sharedMemoryFd;
     char *sharedMemoryPath;
     char *mutexSemaphorePath;
-    char *fullBufferSemaphorePath;
+    char *toReadSemaphorePath;
 };
 
 static void handleError(char *errorMessage);
@@ -58,14 +58,14 @@ void destroySharedMemory(SharedMemoryADT sharedMemory)
         handleError("Error unlinking mutex semaphore");
     }
 
-    if (sem_unlink(sharedMemory->fullBufferSemaphorePath) < 0)
+    if (sem_unlink(sharedMemory->toReadSemaphorePath) < 0)
     {
         handleError("Error unlinking full buffer semaphore");
     }
 
     free(sharedMemory->sharedMemoryPath);
     free(sharedMemory->mutexSemaphorePath);
-    free(sharedMemory->fullBufferSemaphorePath);
+    free(sharedMemory->toReadSemaphorePath);
     free(sharedMemory);
 }
 
@@ -73,7 +73,7 @@ static void unlinkPreviousResources(SharedMemoryADT sharedBuffer)
 {
     shm_unlink(sharedBuffer->sharedMemoryPath);
     sem_unlink(sharedBuffer->mutexSemaphorePath);
-    sem_unlink(sharedBuffer->fullBufferSemaphorePath);
+    sem_unlink(sharedBuffer->toReadSemaphorePath);
 }
 
 /*Crea los nombres y asigna la memoria necesaria*/
@@ -89,7 +89,7 @@ static SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize)
 
     createName(&sharedBuffer->sharedMemoryPath, "/shm_", id);
     createName(&sharedBuffer->mutexSemaphorePath, "/sem-mutex_", id);
-    createName(&sharedBuffer->fullBufferSemaphorePath, "/sem-full_", id);
+    createName(&sharedBuffer->toReadSemaphorePath, "/sem-full_", id);
 
     return sharedBuffer;
 }
@@ -118,7 +118,7 @@ static void createResources(SharedMemoryADT sharedBuffer)
         handleError("Error creating mutex semaphore");
     }
 
-    if ((sharedBuffer->fullBufferSemaphore = sem_open(sharedBuffer->fullBufferSemaphorePath, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 0)) == SEM_FAILED)
+    if ((sharedBuffer->toReadSemaphore = sem_open(sharedBuffer->toReadSemaphorePath, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH, 0)) == SEM_FAILED)
     {
         handleError("Error creating fullBuffer semaphore");
     }
@@ -141,14 +141,14 @@ size_t writeSharedMemory(SharedMemoryADT sharedMemory, const void *buffer, size_
     strncpy(sharedMemory->writePointer, buffer, size);
     sharedMemory->writePointer += (size + 1);
 
-    sem_post(sharedMemory->fullBufferSemaphore);
+    sem_post(sharedMemory->toReadSemaphore);
     sem_post(sharedMemory->mutexSemaphore);
     return size;
 }
 
 size_t readSharedMemory(SharedMemoryADT sharedMemory, void *buffer, size_t size)
 {
-    sem_wait(sharedMemory->fullBufferSemaphore);
+    sem_wait(sharedMemory->toReadSemaphore);
     sem_wait(sharedMemory->mutexSemaphore);
 
     strcpy(buffer, sharedMemory->readPointer);
@@ -172,7 +172,7 @@ SharedMemoryADT openSharedMemory(const char *id, size_t bufferSize)
         handleError("Error opening mutex semaphore");
     }
 
-    if ((sharedBuffer->fullBufferSemaphore = sem_open(sharedBuffer->fullBufferSemaphorePath, 0)) == SEM_FAILED)
+    if ((sharedBuffer->toReadSemaphore = sem_open(sharedBuffer->toReadSemaphorePath, 0)) == SEM_FAILED)
     {
         handleError("Error opening buffer semaphore");
     }
@@ -200,7 +200,7 @@ void closeSharedMemory(SharedMemoryADT sharedMemory)
         handleError("Error closing mutex semaphore");
     }
 
-    if (sem_close(sharedMemory->fullBufferSemaphore) < 0)
+    if (sem_close(sharedMemory->toReadSemaphore) < 0)
     {
         handleError("Error closing full buffer semaphore");
     }
