@@ -1,5 +1,14 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // Application process
 #include "slaveInfoADT.h"
+
+#define CHECK_FOPEN(file)             \
+    if ((file) == NULL)               \
+    {                                 \
+        perror("Error opening file"); \
+        exit(EXIT_FAILURE);           \
+    }
 
 static void freeSlaveArray(slaveInfoADT slaveArray[SLAVE_AMMOUNT]);
 
@@ -20,6 +29,7 @@ int main(int argc, char const *argv[])
     initialPathQty = (aux == 0) ? 1 : aux;
 
     FILE *file = fopen("results.txt", "w");
+    CHECK_FOPEN(file)
 
     slaveInfoADT slaveArray[SLAVE_AMMOUNT];
 

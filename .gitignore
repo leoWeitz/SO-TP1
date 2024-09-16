@@ -54,3 +54,8 @@ dkms.conf
 #Outputs
 *.txt
 files/*
+
+#PVS-Studio
+.log
+.tasks
+.config

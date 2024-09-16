@@ -1,0 +1,2 @@
+pvs-studio.com/en/docs/warnings/	1	err	Help: The documentation for all analyzer warnings is available here: https://pvs-studio.com/en/docs/warnings/.
+/root/slave.c	45	note	V631 Consider inspecting the 'execve' function call. Defining an absolute path to the file or directory is considered a poor style.

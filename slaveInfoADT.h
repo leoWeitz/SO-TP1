@@ -13,6 +13,13 @@
 #define SLAVEPATH "./slave.out"
 #define DATASIZE 300
 
+#define CHECK_ALLOC(ptr)                   \
+    if ((ptr) == NULL)                     \
+    {                                      \
+        perror("Error allocating memory"); \
+        exit(EXIT_FAILURE);                \
+    }
+
 typedef struct slaveInfoCDT *slaveInfoADT;
 
 int addPath(char **buf, int bufSize, char const *path);

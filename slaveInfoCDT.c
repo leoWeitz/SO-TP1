@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "slaveInfoADT.h"
 
 char *const argvSlave[] = {SLAVEPATH, NULL};
@@ -13,7 +15,9 @@ struct slaveInfoCDT
 int addPath(char **buf, int bufSize, char const *path)
 {
     int newBufSize = bufSize + strlen(path) + 2;
-    *buf = realloc(*buf, newBufSize);
+    char *auxBuf = realloc(*buf, newBufSize);
+    CHECK_ALLOC(auxBuf);
+    *buf = auxBuf;
     strcpy(*buf + bufSize, path);
     strcat(*buf, "\n");
     return newBufSize - 1;
@@ -33,6 +37,7 @@ void prepareAndExecSlaves(slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfd
     for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
     {
         slaveArray[i] = malloc(sizeof(struct slaveInfoCDT));
+        CHECK_ALLOC(slaveArray[i]);
         int appToSlaveFdsAux[2];
         int slaveToAppFdsAux[2];
         pipe(appToSlaveFdsAux);
