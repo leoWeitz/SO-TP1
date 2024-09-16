@@ -19,7 +19,14 @@ int main(int argc, char const *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     char *nombreBuff = "AppAndViewBuff";
-    int sizeSharedBuffer = DATASIZE * argc; // CHequear magic boy
+    int sizeSharedBuffer = DATASIZE * argc;
+
+    slaveInfoADT slaveArray[SLAVE_AMMOUNT];
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+
+    prepareAndExecSlaves(slaveArray, &readfds);
 
     SharedMemoryADT sharedMemory = createSharedMemory(nombreBuff, sizeSharedBuffer);
     printf("%s\t%d\n", nombreBuff, sizeSharedBuffer);
@@ -31,13 +38,6 @@ int main(int argc, char const *argv[])
     FILE *file = fopen("results.txt", "w");
     CHECK_FOPEN(file)
 
-    slaveInfoADT slaveArray[SLAVE_AMMOUNT];
-
-    fd_set readfds;
-    FD_ZERO(&readfds);
-
-    prepareAndExecSlaves(slaveArray, &readfds);
-
     currentPath = sendInitialFiles(slaveArray, argv, argc, currentPath, initialPathQty);
 
     readFromSlavesAndWriteResults(slaveArray, currentPath, argc, readfds, file, sharedMemory, argv);
@@ -45,11 +45,15 @@ int main(int argc, char const *argv[])
     char endMarker = '\0';
     writeSharedMemory(sharedMemory, &endMarker, 1);
 
-    freeSlaveArray(slaveArray);
-
     destroySharedMemory(sharedMemory);
 
     fclose(file);
+
+    closePreviousPipes(SLAVE_AMMOUNT, slaveArray);
+
+    waitForSlavesToEnd(slaveArray);
+
+    freeSlaveArray(slaveArray);
 
     return 0;
 }

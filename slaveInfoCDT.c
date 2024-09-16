@@ -23,7 +23,7 @@ int addPath(char **buf, int bufSize, char const *path)
     return newBufSize - 1;
 }
 
-static void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_AMMOUNT])
+void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_AMMOUNT])
 {
     for (size_t i = 0; i < slavesCreated; i++)
     {
@@ -81,6 +81,7 @@ int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[],
 
         free(buffer);
     }
+
     return currentPath;
 }
 
@@ -122,5 +123,13 @@ void readFromSlavesAndWriteResults(slaveInfoADT slaveArray[SLAVE_AMMOUNT], int c
                 processed++;
             }
         }
+    }
+}
+
+void waitForSlavesToEnd(slaveInfoADT slaveArray[SLAVE_AMMOUNT])
+{
+    for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
+    {
+        waitpid(slaveArray[i]->slavePid, NULL, 0);
     }
 }

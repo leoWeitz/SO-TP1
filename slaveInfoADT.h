@@ -6,6 +6,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <sys/wait.h>
 #include "SharedMemoryADT.h"
 
 #define MAX_SPRINTF 3000
@@ -24,10 +25,14 @@ typedef struct slaveInfoCDT *slaveInfoADT;
 
 int addPath(char **buf, int bufSize, char const *path);
 
+void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_AMMOUNT]);
+
 void prepareAndExecSlaves(slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds);
 
 int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty);
 
 void readFromSlavesAndWriteResults(slaveInfoADT slaveArray[SLAVE_AMMOUNT], int currentPath, int lastPath, fd_set readfds, FILE *file, SharedMemoryADT sharedMemory, char const *argv[]);
+
+void waitForSlavesToEnd(slaveInfoADT slaveArray[SLAVE_AMMOUNT]);
 
 #endif
