@@ -1,9 +1,16 @@
-#include "appLib.h"
+#include "slaveInfoADT.h"
 
 char *const argvSlave[] = {SLAVEPATH, NULL};
 char *const envpSlave[] = {NULL};
 
 #define MAX_SPRINTF 3000
+
+struct slaveInfoCDT
+{
+    int writeToSlaveFd;
+    int readFromSlaveFd;
+    int slavePid;
+};
 
 /*@Check: se puede pasar directamente argv[currentPath]?*/
 int addPath(char **buf, int bufSize, char const *path, int argc)
@@ -15,7 +22,7 @@ int addPath(char **buf, int bufSize, char const *path, int argc)
     return newBufSize;
 }
 
-void closePreviousPipes(int slavesCreated, slaveInfo *slaveArray[SLAVE_AMMOUNT])
+static void closePreviousPipes(int slavesCreated, slaveInfoADT slaveArray[SLAVE_AMMOUNT])
 {
     for (size_t i = 0; i < slavesCreated; i++)
     {
@@ -24,7 +31,7 @@ void closePreviousPipes(int slavesCreated, slaveInfo *slaveArray[SLAVE_AMMOUNT])
     }
 }
 
-void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
+void prepareAndExecSlave(int slaveNumber, slaveInfoADT slaveArray[SLAVE_AMMOUNT], fd_set *readfds)
 {
     int appToSlaveFdsAux[2];
     int slaveToAppFdsAux[2];
@@ -32,8 +39,8 @@ void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
     pipe(slaveToAppFdsAux);
     slaveArray[slaveNumber]->readFromSlaveFd = slaveToAppFdsAux[0];
     slaveArray[slaveNumber]->writeToSlaveFd = appToSlaveFdsAux[1];
-    int slavePid;
-    if ((slavePid = fork()) == 0)
+    int slavePid = fork();
+    if ((slavePid) == 0)
     {
         closePreviousPipes(slaveNumber, slaveArray);
         close(slaveArray[slaveNumber]->writeToSlaveFd);
@@ -44,13 +51,16 @@ void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
         close(slaveToAppFdsAux[1]);
         execve(SLAVEPATH, argvSlave, envpSlave);
     }
-    slaveArray[slaveNumber]->slavePid = slavePid;
+    else
+        slaveArray[slaveNumber]->slavePid = slavePid;
 
     close(appToSlaveFdsAux[0]);
     close(slaveToAppFdsAux[1]);
+
+    FD_SET(slaveArray[slaveNumber]->readFromSlaveFd, readfds);
 }
 
-int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty)
+int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty)
 {
     for (size_t j = 0; j < SLAVE_AMMOUNT && currentPath < argc; j++)
     {
@@ -62,17 +72,51 @@ int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], i
             currentPath++;
         }
         write(slaveArray[j]->writeToSlaveFd, buffer, bufferSize);
+
         free(buffer);
     }
     return currentPath;
 }
 
-void readFromSlaveAndWriteResult(slaveInfo *slaveInfo, FILE *file, SharedMemoryADT sharedMemory)
+// Lee del esclavo recibido y escribe el resultado en results.txt y en la memoria compartida
+static void manageResult(slaveInfoADT slaveInfo, FILE *file, SharedMemoryADT sharedMemory)
 {
     char rBuf[TAMANO1DATO] = {0};
     read(slaveInfo->readFromSlaveFd, rBuf, TAMANO1DATO);
     char result[MAX_SPRINTF]; //@TODO: Change MAX_SPRINTF
     sprintf(result, "%d\t%s", slaveInfo->slavePid, rBuf);
     fprintf(file, "%s", result);
+    fflush(file);
     writeSharedMemory(sharedMemory, result, strlen(result));
+}
+
+void readFromSlavesAndWriteResults(slaveInfoADT slaveArray[SLAVE_AMMOUNT], int currentPath, int argc, fd_set readfds, FILE *file, SharedMemoryADT sharedMemory, char const *argv[])
+{
+
+    fd_set readfdsX;
+
+    int processed = 0;
+
+    while (processed < argc - 1)
+    {
+        FD_ZERO(&readfdsX);
+        readfdsX = readfds;
+        select(FD_SETSIZE, &readfdsX, NULL, NULL, NULL);
+        for (size_t j = 0; j < SLAVE_AMMOUNT; j++)
+        {
+            char *buf = NULL;
+            if (FD_ISSET(slaveArray[j]->readFromSlaveFd, &readfdsX))
+            {
+                manageResult(slaveArray[j], file, sharedMemory);
+                if (currentPath < argc)
+                {
+                    int bufSize = addPath(&buf, 0, argv[currentPath], argc);
+                    currentPath++;
+                    write(slaveArray[j]->writeToSlaveFd, buf, bufSize);
+                    free(buf);
+                }
+                processed++;
+            }
+        }
+    }
 }

@@ -13,11 +13,11 @@ slave.out: slave.c
 app.o: app.c
 	$(CC) $(CFLAGS) -c app.c -o app.o
 
-appLib.o: appLib.c
-	$(CC) $(CFLAGS) -c appLib.c -o appLib.o
+slaveInfoCDT.o: slaveInfoCDT.c
+	$(CC) $(CFLAGS) -c slaveInfoCDT.c -o slaveInfoCDT.o
 
-app.out: app.o appLib.o SharedMemoryCDT.o
-	$(CC) app.o appLib.o SharedMemoryCDT.o -o app.out
+app.out: app.o slaveInfoCDT.o SharedMemoryCDT.o
+	$(CC) app.o slaveInfoCDT.o SharedMemoryCDT.o -o app.out
 
 view.o: view.c
 	$(CC) $(CFLAGS) -c view.c -o view.o
