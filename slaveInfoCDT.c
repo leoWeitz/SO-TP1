@@ -3,7 +3,6 @@
 char *const argvSlave[] = {SLAVEPATH, NULL};
 char *const envpSlave[] = {NULL};
 
-#define MAX_SPRINTF 3000
 
 struct slaveInfoCDT
 {
@@ -12,7 +11,6 @@ struct slaveInfoCDT
     int slavePid;
 };
 
-/*@Check: se puede pasar directamente argv[currentPath]?*/
 int addPath(char **buf, int bufSize, char const *path, int argc)
 {
     int newBufSize = bufSize + strlen(path) + 1;
@@ -52,11 +50,11 @@ void prepareAndExecSlave(int slaveNumber, slaveInfoADT slaveArray[SLAVE_AMMOUNT]
         execve(SLAVEPATH, argvSlave, envpSlave);
     }
     else
+    {
         slaveArray[slaveNumber]->slavePid = slavePid;
-
+    }
     close(appToSlaveFdsAux[0]);
     close(slaveToAppFdsAux[1]);
-
     FD_SET(slaveArray[slaveNumber]->readFromSlaveFd, readfds);
 }
 
@@ -78,12 +76,11 @@ int sendInitialFiles(slaveInfoADT slaveArray[SLAVE_AMMOUNT], char const *argv[],
     return currentPath;
 }
 
-// Lee del esclavo recibido y escribe el resultado en results.txt y en la memoria compartida
 static void manageResult(slaveInfoADT slaveInfo, FILE *file, SharedMemoryADT sharedMemory)
 {
-    char rBuf[TAMANO1DATO] = {0};
-    read(slaveInfo->readFromSlaveFd, rBuf, TAMANO1DATO);
-    char result[MAX_SPRINTF]; //@TODO: Change MAX_SPRINTF
+    char rBuf[DATASIZE] = {0};
+    read(slaveInfo->readFromSlaveFd, rBuf, DATASIZE);
+    char result[MAX_SPRINTF];
     sprintf(result, "%d\t%s", slaveInfo->slavePid, rBuf);
     fprintf(file, "%s", result);
     fflush(file);
@@ -92,7 +89,6 @@ static void manageResult(slaveInfoADT slaveInfo, FILE *file, SharedMemoryADT sha
 
 void readFromSlavesAndWriteResults(slaveInfoADT slaveArray[SLAVE_AMMOUNT], int currentPath, int argc, fd_set readfds, FILE *file, SharedMemoryADT sharedMemory, char const *argv[])
 {
-
     fd_set readfdsX;
 
     int processed = 0;

@@ -6,39 +6,38 @@
 
 int main(int argc, char *argv[]) {
     
-    char nombreBuff[100];
-    int tamSharedBuffer;
+    char buffName[100];
+    int sizeSharedBuffer;
 
     if (argc == 3) {
-        tamSharedBuffer = atoi(argv[2]);
-        strncpy(nombreBuff, argv[1], sizeof(nombreBuff) - 1);
-        nombreBuff[sizeof(nombreBuff) - 1] = '\0';
-
-        printf("Received from command-line arguments: %s\t%d\n", nombreBuff, tamSharedBuffer);
+        sizeSharedBuffer = atoi(argv[2]);
+        strncpy(buffName, argv[1], sizeof(buffName) - 1);
+        buffName[sizeof(buffName) - 1] = '\0';
     }
     else if (!isatty(STDIN_FILENO)) 
     {  
-        if (scanf("%s\t%d", nombreBuff, &tamSharedBuffer) == 2) {
-            printf("Received from pipe: %s\t%d\n", nombreBuff, tamSharedBuffer);
-        }else 
+        if (scanf("%s\t%d", buffName, &sizeSharedBuffer) != 2) 
         {
-        printf("App esta mandando mal, chequealo\n");
-        return 1;
+            perror("Incorrect name or size");
+            return 1;
         }
     }
     else 
     {
-    printf("O mandas por app o pones argumentos en view loco dale\n");
-    return 1;
+        perror("No arguments nor stdin");
+        return 1;
     }
-    SharedMemoryADT sharedMemory = openSharedMemory(nombreBuff, tamSharedBuffer);
+
+    SharedMemoryADT sharedMemory = openSharedMemory(buffName, sizeSharedBuffer);
     char output[4096];
+    
     while (readSharedMemory(sharedMemory, output, sizeof(output))>0) 
     {
         if(output[0]!=0){
             printf("%s\n", output);
         }
     }
-    destroySharedMemory(sharedMemory);
+    
+    closeSharedMemory(sharedMemory);
     return 0;
 }

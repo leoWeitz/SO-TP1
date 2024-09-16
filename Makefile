@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 TARGETS = slave.out app.out view.out
 
 all: $(TARGETS)

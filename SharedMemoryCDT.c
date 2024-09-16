@@ -16,19 +16,17 @@ struct SharedMemoryCDT
     char *fullBufferSemaphorePath;
 };
 
-void handleError(char *errorMessage);
+static void handleError(char *errorMessage);
 
-void unlinkPreviousResources(SharedMemoryADT sharedBuffer);
+static void unlinkPreviousResources(SharedMemoryADT sharedBuffer);
 
-void createName(char **buffer, const char *base, const char *id);
+static void createName(char **buffer, const char *base, const char *id);
 
-SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize);
+static SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize);
 
-void createResources(SharedMemoryADT sharedBuffer);
+static void createResources(SharedMemoryADT sharedBuffer);
 
-void checkSpace(SharedMemoryADT sharedMemory, size_t *toWrite);
-
-void handleError(char *errorMessage)
+static void handleError(char *errorMessage)
 {
     perror(errorMessage);
     exit(EXIT_FAILURE);
@@ -73,9 +71,7 @@ void destroySharedMemory(SharedMemoryADT sharedMemory)
     free(sharedMemory);
 }
 
-
-/*Para prevenir errores de ENODENT (faltó cerrar algún recurso)*/
-void unlinkPreviousResources(SharedMemoryADT sharedBuffer)
+static void unlinkPreviousResources(SharedMemoryADT sharedBuffer)
 {
     shm_unlink(sharedBuffer->sharedMemoryPath);
     sem_unlink(sharedBuffer->mutexSemaphorePath);
@@ -83,7 +79,7 @@ void unlinkPreviousResources(SharedMemoryADT sharedBuffer)
 }
 
 /*Crea los nombres y asigna la memoria necesaria*/
-SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize)
+static SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize)
 {
     SharedMemoryADT sharedBuffer = malloc(sizeof(struct SharedMemoryCDT));
     if (sharedBuffer == NULL)
@@ -93,15 +89,15 @@ SharedMemoryADT createBaseSharedMemory(const char *id, size_t buffSize)
     sharedBuffer->bufferSize = buffSize;
     sharedBuffer->currSize = 0;
     
-    createName(&sharedBuffer->sharedMemoryPath, "shm_", id); //@TODO: agregar una "/" al principio de shm?
-    createName(&sharedBuffer->mutexSemaphorePath, "sem-mutex_", id);
-    createName(&sharedBuffer->fullBufferSemaphorePath, "sem-full_", id);
+    createName(&sharedBuffer->sharedMemoryPath, "/shm_", id); 
+    createName(&sharedBuffer->mutexSemaphorePath, "/sem-mutex_", id);
+    createName(&sharedBuffer->fullBufferSemaphorePath, "/sem-full_", id);
 
     return sharedBuffer;
 }
 
 /*Arma el string de un nombre de la forma "base+id" dejándolo en buffer 0*/
-void createName(char **buffer, const char *base, const char *id)
+static void createName(char **buffer, const char *base, const char *id)
 {
     *buffer = malloc(strlen(base) + strlen(id) + 1);
     if (*buffer == NULL)
@@ -112,7 +108,7 @@ void createName(char **buffer, const char *base, const char *id)
     strcat(*buffer, id);
 }
 
-void createResources(SharedMemoryADT sharedBuffer)
+static void createResources(SharedMemoryADT sharedBuffer)
 {
     if ((sharedBuffer->sharedMemoryFd = shm_open(sharedBuffer->sharedMemoryPath, O_CREAT | O_RDWR | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)) < 0) // CHECK: le damos permisos de R y W a user, group y others, hace falta todo?
     {
@@ -129,12 +125,12 @@ void createResources(SharedMemoryADT sharedBuffer)
         handleError("Error creating fullBuffer semaphore");
     }
 
-    if ((ftruncate(sharedBuffer->sharedMemoryFd, sharedBuffer->bufferSize + sizeof(long))) < 0) // CHECK: sizeof(long)
+    if ((ftruncate(sharedBuffer->sharedMemoryFd, sharedBuffer->bufferSize)) < 0)
     {
         handleError("Error assigning size to shared memory");
     }
 
-    if ((sharedBuffer->sharedMemoryBaseAddress = mmap(NULL, sharedBuffer->bufferSize + sizeof(long), PROT_READ | PROT_WRITE, MAP_SHARED, sharedBuffer->sharedMemoryFd, 0)) == MAP_FAILED) // CHECK: MAP_SHARED
+    if ((sharedBuffer->sharedMemoryBaseAddress = mmap(NULL, sharedBuffer->bufferSize, PROT_READ | PROT_WRITE, MAP_SHARED, sharedBuffer->sharedMemoryFd, 0)) == MAP_FAILED)
     {
         handleError("Error mapping shared memory");
     }
@@ -149,7 +145,6 @@ size_t writeSharedMemory(SharedMemoryADT sharedMemory, const void *buffer, size_
 
     sem_post(sharedMemory->fullBufferSemaphore);
     sem_post(sharedMemory->mutexSemaphore);
-
     return size;
 }
 
@@ -169,13 +164,11 @@ SharedMemoryADT openSharedMemory(const char *id, size_t bufferSize)
 {
     SharedMemoryADT sharedBuffer = createBaseSharedMemory(id, bufferSize);
 
-    /* Open the existing shared memory */
     if ((sharedBuffer->sharedMemoryFd = shm_open(sharedBuffer->sharedMemoryPath, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)) < 0)
     {
         handleError("Error opening shared memory");
     }
 
-    /* Open the existing semaphore */
     if ((sharedBuffer->mutexSemaphore = sem_open(sharedBuffer->mutexSemaphorePath, 0)) == SEM_FAILED)
     {
         handleError("Error opening mutex semaphore");
@@ -186,7 +179,6 @@ SharedMemoryADT openSharedMemory(const char *id, size_t bufferSize)
         handleError("Error opening buffer semaphore");
     }
 
-    /* Map the shared memory */
     if ((sharedBuffer->sharedMemoryBaseAddress = mmap(NULL, sharedBuffer->bufferSize + sizeof(long), PROT_READ | PROT_WRITE, MAP_SHARED, sharedBuffer->sharedMemoryFd, 0)) == MAP_FAILED)
     {
         handleError("Error mapping shared memory");

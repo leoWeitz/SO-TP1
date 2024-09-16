@@ -8,10 +8,10 @@
 #include <string.h>
 #include "SharedMemoryADT.h"
 
-// Informacion de slave
-#define SLAVE_AMMOUNT 10 //@TODO: Chequear magic number
+#define MAX_SPRINTF 3000
+#define SLAVE_AMMOUNT 10
 #define SLAVEPATH "./slave.out"
-#define TAMANO1DATO 275
+#define DATASIZE 300
 
 typedef struct slaveInfoCDT *slaveInfoADT;
 
