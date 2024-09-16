@@ -6,9 +6,9 @@ int initialPathQty;
 
 int main(int argc, char const *argv[])
 {
-    setvbuf(stdout,NULL,_IONBF,0);
+    setvbuf(stdout, NULL, _IONBF, 0);
     char *nombreBuff = "AppAndViewBuff";
-    int sizeSharedBuffer = TAMANO1DATO * argc; // CHequear magic boy
+    int sizeSharedBuffer = DATASIZE * argc; // CHequear magic boy
 
     SharedMemoryADT sharedMemory = createSharedMemory(nombreBuff, sizeSharedBuffer);
     printf("%s\t%d\n", nombreBuff, sizeSharedBuffer);
@@ -40,6 +40,6 @@ int main(int argc, char const *argv[])
     destroySharedMemory(sharedMemory);
 
     fclose(file);
-    
+
     return 0;
 }
