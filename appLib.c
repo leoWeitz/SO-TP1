@@ -3,6 +3,8 @@
 char *const argvSlave[] = {SLAVEPATH, NULL};
 char *const envpSlave[] = {NULL};
 
+#define MAX_SPRINTF 3000
+
 /*@Check: se puede pasar directamente argv[currentPath]?*/
 int addPath(char **buf, int bufSize, char const *path, int argc)
 {
@@ -30,8 +32,8 @@ void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
     pipe(slaveToAppFdsAux);
     slaveArray[slaveNumber]->readFromSlaveFd = slaveToAppFdsAux[0];
     slaveArray[slaveNumber]->writeToSlaveFd = appToSlaveFdsAux[1];
-
-    if (fork() == 0)
+    int slavePid;
+    if ((slavePid = fork()) == 0)
     {
         closePreviousPipes(slaveNumber, slaveArray);
         close(slaveArray[slaveNumber]->writeToSlaveFd);
@@ -40,9 +42,9 @@ void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT])
         dup2(slaveToAppFdsAux[1], 1);
         close(appToSlaveFdsAux[0]);
         close(slaveToAppFdsAux[1]);
-        // closePreviousPipes(slaveNumber, slaveArray);
         execve(SLAVEPATH, argvSlave, envpSlave);
     }
+    slaveArray[slaveNumber]->slavePid = slavePid;
 
     close(appToSlaveFdsAux[0]);
     close(slaveToAppFdsAux[1]);
@@ -65,10 +67,12 @@ int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], i
     return currentPath;
 }
 
-void readFromFdAndWriteResult(int fdToRead, FILE *file,SharedMemoryADT sharedMemory)
+void readFromSlaveAndWriteResult(slaveInfo *slaveInfo, FILE *file, SharedMemoryADT sharedMemory)
 {
     char rBuf[TAMANO1DATO] = {0};
-    read(fdToRead, rBuf, 100);
-    fprintf(file, "%s", rBuf);
-    writeSharedMemory(sharedMemory, rBuf, strlen(rBuf));
+    read(slaveInfo->readFromSlaveFd, rBuf, TAMANO1DATO);
+    char result[MAX_SPRINTF]; //@TODO: Change MAX_SPRINTF
+    sprintf(result, "%d\t%s", slaveInfo->slavePid, rBuf);
+    fprintf(file, "%s", result);
+    writeSharedMemory(sharedMemory, result, strlen(result));
 }

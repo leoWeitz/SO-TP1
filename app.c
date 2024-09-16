@@ -6,15 +6,15 @@ int initialPathQty;
 
 int main(int argc, char const *argv[])
 {
-    char * nombreBuff = "NombreBuff";//PREGUNTAR TEMA NAME
+    char *nombreBuff = "NombreBuff";           // PREGUNTAR TEMA NAME
     int sizeSharedBuffer = TAMANO1DATO * argc; // CHequear magic boy
 
     sleep(2);
 
-    printf("%s\t%d\n",nombreBuff,sizeSharedBuffer); // Paso los argumentos si se pipea
+    printf("%s\t%d\n", nombreBuff, sizeSharedBuffer); // Paso los argumentos si se pipea
 
     SharedMemoryADT sharedMemory = createSharedMemory(nombreBuff, sizeSharedBuffer);
-   
+
     int aux = ((argc - 1) * 0.1) / SLAVE_AMMOUNT;
     initialPathQty = (aux == 0) ? 1 : aux;
 
@@ -25,7 +25,7 @@ int main(int argc, char const *argv[])
 
     // Esto es para el select
     fd_set readfds;
-    FD_ZERO( &readfds );
+    FD_ZERO(&readfds);
 
     // Loop para haceer pipes, hacer los fork/execve y cargar read y write fds
     for (size_t i = 0; i < SLAVE_AMMOUNT; i++)
@@ -59,7 +59,7 @@ int main(int argc, char const *argv[])
             char *buf = NULL;
             if (FD_ISSET(slaveArray[j]->readFromSlaveFd, &readfdsX))
             {
-                readFromFdAndWriteResult(slaveArray[j]->readFromSlaveFd, file,sharedMemory);
+                readFromSlaveAndWriteResult(slaveArray[j], file, sharedMemory);
                 if (currentPath < argc)
                 {
                     int bufSize = addPath(&buf, 0, argv[currentPath], argc);
@@ -69,7 +69,6 @@ int main(int argc, char const *argv[])
                 }
                 processed++;
             }
-
         }
     }
     char endMarker = '\0';

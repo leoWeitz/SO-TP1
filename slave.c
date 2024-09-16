@@ -12,7 +12,6 @@
 
 #define MD5PATH "/usr/bin/md5sum"
 #define MAX_CHARS 2000
-#define MAX_SPRINTF 3000
 
 void nullTerminate(char *buff);
 
@@ -64,10 +63,7 @@ int main()
             }
             else
             {
-                pid_t my_pid = getpid();
-                char toSend[MAX_SPRINTF]; //@TODO: Change MAX_SPRINTF
-                sprintf(toSend, "%d\t%s", my_pid, md5_buff);
-                printf("%s", toSend);
+                printf("%s", md5_buff);
             }
             // nullTerminate(md5_buff);
             close(MD5ToSlave[0]);
@@ -85,8 +81,6 @@ int main()
 
         //}
     }
-
-    sleep(100000);
     return 0;
 }
 

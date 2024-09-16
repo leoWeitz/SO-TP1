@@ -6,7 +6,6 @@
 #include <string.h>
 #include "SharedMemoryADT.h"
 
-
 // #define MAX_PATH_AMMOUNT 3 // Cambiar este define o el de slave ammount. Algo tiene que depender de cuantos archivos mandan. Tiene que ser una variable.
 //  Informacion de slave
 #define SLAVE_AMMOUNT 10 //@TODO: Chequear magic number
@@ -26,4 +25,4 @@ void prepareAndExecSlave(int slaveNumber, slaveInfo *slaveArray[SLAVE_AMMOUNT]);
 
 int sendInitialFiles(slaveInfo *slaveArray[SLAVE_AMMOUNT], char const *argv[], int argc, int currentPath, int initialPathQty);
 
-void readFromFdAndWriteResult(int fdToRead, FILE *file,SharedMemoryADT sharedMemoryADT);
+void readFromSlaveAndWriteResult(slaveInfo *slaveInfo, FILE *file, SharedMemoryADT sharedMemory);
