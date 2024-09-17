@@ -23,13 +23,13 @@ el cual generará los archivos ejecutables necesarios como app.out (proceso apli
 
 La primera opción de ejecución es mediante el uso de el comando:
 
-**./app.out files/* | ./view.out**
+./app.out files/* | ./view.out
 
 Donde el proceso aplicación mandará mediante el pipe toda la información necesaria ,siendo esta el nombre del buffer y el tamaño, para que el proceso vista (view.out) pueda acceder a la memoria compartida que creó el proceso aplicación.
 
  La segunda opción ejecuta el proceso aplicación y el proceso vista en diferentes terminales. Para esto se deberá ejecutar:
 
-**./app.out files/* **
+./app.out files/* 
 
 y luego en otro comando:
 
