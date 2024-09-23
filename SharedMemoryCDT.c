@@ -203,7 +203,7 @@ void closeSharedMemory(SharedMemoryADT sharedMemory)
 
     free(sharedMemory->sharedMemoryPath);
     free(sharedMemory->mutexSemaphorePath);
-    free(sharedMemory->fullBufferSemaphorePath);
+    free(sharedMemory->toReadSemaphorePath);
 
     free(sharedMemory);
 }
