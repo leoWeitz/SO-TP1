@@ -46,7 +46,6 @@ SharedMemoryADT createSharedMemory(const char *id, size_t bufferSize)
 
 void destroySharedMemory(SharedMemoryADT sharedMemory)
 {
-    closeSharedMemory(sharedMemory);
 
     if (shm_unlink(sharedMemory->sharedMemoryPath) < 0)
     {
@@ -63,10 +62,7 @@ void destroySharedMemory(SharedMemoryADT sharedMemory)
         handleError("Error unlinking full buffer semaphore");
     }
 
-    free(sharedMemory->sharedMemoryPath);
-    free(sharedMemory->mutexSemaphorePath);
-    free(sharedMemory->fullBufferSemaphorePath);
-    free(sharedMemory);
+    closeSharedMemory(sharedMemory);
 }
 
 static void unlinkPreviousResources(SharedMemoryADT sharedBuffer)
@@ -204,4 +200,10 @@ void closeSharedMemory(SharedMemoryADT sharedMemory)
     {
         handleError("Error closing full buffer semaphore");
     }
+
+        free(sharedMemory->sharedMemoryPath);
+    free(sharedMemory->mutexSemaphorePath);
+    free(sharedMemory->fullBufferSemaphorePath);
+
+    free(sharedMemory);
 }

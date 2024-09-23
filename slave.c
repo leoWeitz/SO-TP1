@@ -24,8 +24,8 @@ static void nullTerminate(char *buff);
 int main()
 {
     setvbuf(stdout, NULL, _IONBF, 0);
-    char *line = malloc(MAX_CHARS);
-    CHECK_ALLOC(line)
+    char line[MAX_CHARS];
+    // CHECK_ALLOC(line)
     char *argvChild[] = {MD5PATH, line, NULL};
     char *envpChild[] = {NULL};
     char md5_buff[MAX_CHARS] = {0};
@@ -60,6 +60,7 @@ int main()
             close(MD5ToSlave[0]);
         }
     }
+    // free(line);
     return 0;
 }
 
